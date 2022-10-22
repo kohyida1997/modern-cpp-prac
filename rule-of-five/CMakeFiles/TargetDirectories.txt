@@ -1,0 +1,6 @@
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/CMakeFiles/Main.dir
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/CMakeFiles/edit_cache.dir
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/CMakeFiles/rebuild_cache.dir
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/widget/CMakeFiles/Widget.dir
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/widget/CMakeFiles/edit_cache.dir
+/home/ubuntu/kohyida/modern-cpp-prac/rule-of-five/widget/CMakeFiles/rebuild_cache.dir

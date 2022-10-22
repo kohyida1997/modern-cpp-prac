@@ -1,0 +1,2 @@
+/usr/bin/ar qc libWidget.a CMakeFiles/Widget.dir/Widget.cpp.o
+/usr/bin/ranlib libWidget.a
