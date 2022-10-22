@@ -1,0 +1,10 @@
+
+# Visual Studio 2019 cache/options directory
+.vscode
+
+*.a
+
+**/CMakeFiles
+Main
+
+Main
