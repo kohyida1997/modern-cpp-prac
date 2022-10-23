@@ -5,6 +5,7 @@
 *.a
 
 **/CMakeFiles
+**/build
 Main
 
 Main
