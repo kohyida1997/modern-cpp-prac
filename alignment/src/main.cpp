@@ -1,6 +1,14 @@
 #include "shared/Alignment.h"
+#include <iostream>
 
 int main() {
-    (new Alignment::OneCacheLiner())->print();
+    // Say hi
+    Alignment::sayHelloWorld();
+
+    (new Alignment::StructWithoutPadding())->printSize();
+    (new Alignment::StructWithPadding())->printSize();
+
+    std::cout << sizeof(double) << std::endl;
+
     return 0;
 }
