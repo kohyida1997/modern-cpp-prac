@@ -10,21 +10,20 @@ namespace BasicArena {
 template <size_t T>
 // Basic Arena that allocates a memory pool on the Heap
 class BasicArena {
-  static constexpr size_t max_alignment = alignof(std::max_align_t);
-
  public:
+  static constexpr size_t max_alignment = alignof(std::max_align_t);
   BasicArena() {
     _buffer =
         new (std::align_val_t(max_alignment)) std::byte[T];  // On The Heap
     _ptr = _buffer;
 
-    void* check = reinterpret_cast<void*>(_buffer);
-    void* initial = check;
-    size_t sz = T;
-    void* newPtr = std::align(max_alignment, T, check, sz);
-    std::cout << "Is Aligned? "
-              << (newPtr == initial ? "true" : "false")
-              << "\n";
+    // void* check = reinterpret_cast<void*>(_buffer);
+    // void* initial = check;
+    // size_t sz = T;
+    // void* newPtr = std::align(max_alignment, T, check, sz);
+    // std::cout << "Is Aligned? "
+    //           << (newPtr == initial ? "true" : "false")
+    //           << "\n";
     // std::cout << "Adjusted " << newPtr << "\n";
   };
 
