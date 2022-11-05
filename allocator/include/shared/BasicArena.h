@@ -10,7 +10,7 @@ constexpr size_t max_alignment = alignof(std::max_align_t);
 // T is the capacity in bytes of the arena
 template <size_t T>
 // Basic Arena that allocates a stack-like memory pool on the Heap,
-// monotonically. Pretty dumb yeah
+// monotonically. Pretty dumb yeah.
 class BasicArena {
  public:
   BasicArena() noexcept {
@@ -20,7 +20,7 @@ class BasicArena {
   };
 
   ~BasicArena() {
-    delete _buffer;
+    delete[] _buffer;
     _ptr = nullptr;
     _buffer = nullptr;
   }
@@ -41,7 +41,7 @@ class BasicArena {
   void* allocate(size_t s, size_t align) {
     if (available_size() == 0ul) {
       std::cout << "Buffer available size is zero\n";
-      return reinterpret_cast<void*>(new std::byte[s]);
+      return static_cast<void*>(::operator new(s));
     }
 
     // Copy the pointer
@@ -53,7 +53,7 @@ class BasicArena {
     // Fail to align/out of space, just malloc it
     if (obj == nullptr) {
       std::cout << "Align failed - nullptr, allocating on Heap instead\n";
-      return reinterpret_cast<void*>(new std::byte[s]);
+      return static_cast<void*>(::operator new(s));
     }
 
     // Cast to byte
@@ -62,7 +62,7 @@ class BasicArena {
     // This should be technically not necessary
     if (!in_buffer(obj_byte_ptr + s - 1)) {
       std::cout << "Ran out of space in buffer\n";
-      return reinterpret_cast<void*>(new std::byte[s]);
+      return static_cast<void*>(::operator new(s));
     }
 
     // Okay, advance the pointer
@@ -74,9 +74,20 @@ class BasicArena {
     return allocate(std::move(s), max_alignment);
   }
 
-  // TODO: If ptr is at end of stack, move ptr back to reclaim space
+  // If ptr is at end of region (stack-like), move back ptr to reclaim
+  // WARNING: Does not reclaim space due to alignment
   void deallocate(std::byte* ptr, size_t x) noexcept {
-    if (!in_buffer(ptr)) delete ptr;
+    // If it is not in the buffer, simply call global delete
+    if (!in_buffer(ptr)) {
+      delete ptr;
+      return;
+    }
+
+    // Check if it is the last one
+    if ((ptr + x) == _ptr) {
+      // Move the curr _ptr back
+      _ptr = ptr;
+    }
   }
 
   bool in_buffer(std::byte* test) noexcept {
