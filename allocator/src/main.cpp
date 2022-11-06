@@ -1,4 +1,3 @@
-#include <bitset>
 #include <cassert>
 #include <iostream>
 #include <memory>
