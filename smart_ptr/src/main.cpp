@@ -6,43 +6,40 @@
 
 #include "shared/SingleThreadSharedPtr.h"
 
+// Helper Macros
+#define PRINT_FUNC_HEADER(a) std::cout << "+++ Inside: " << a << std::endl;
+#define PRINT_FUNC_FINISH(b) std::cout << "+++ Finish: " << b << std::endl;
+#define PRINT_SHARED_PTR_IS(c) \
+  std::printf("--- %s is [%p, %f]\n", #c, c.get(), *c);
+#define PRINT_MODULE_HEADER() std::cout << "=== Welcome to the Smart Pointer submodule. Get ready to feel smart! ===\n";
+
+// Overload global operator new and delete
 void* operator new(size_t s) {
   auto ptr = malloc(s);
-  std::cout << "Heap Allocated " << s << " bytes at " << ptr << std::endl;
+  std::cout << "New: Heap Allocated " << s << " bytes at " << ptr << std::endl;
   return ptr;
 }
 
 void operator delete(void* ptr) {
   free(ptr);
-  std::cout << "Deleted " << ptr << std::endl;
+  std::cout << "Delete: Free " << ptr << std::endl;
 }
 
+// Helpers
 template <typename T>
 using SingleThreadSharedPtr = MySmartPtrs::SingleThreadSharedPtr<T>;
 
-void printHeader() {
-  std::cout << "=== Welcome to the Smart Pointer submodule. Get ready to feel "
-               "smart! ===\n";
-}
-
-void printFuncHeader(const char* s) {
-  std::cout << "+++ Inside: " << s << std::endl;
-}
-
-void printFuncFinish(const char* s) {
-  std::cout << "+++ Finish: " << s << std::endl;
-}
-
 template <typename T>
-void testFunctionFoo(SingleThreadSharedPtr<T> ptr) {
-  printFuncHeader(__func__);
+void testFuncPassByValue(SingleThreadSharedPtr<T> ptr) {
+  PRINT_FUNC_HEADER(__func__);
   ptr.printRefCountAndResource();
-  printFuncFinish(__func__);
+  PRINT_FUNC_FINISH(__func__);
 }
 
+// Main Driver code
 int main() {
   // Say Hello Y'all
-  printHeader();
+  PRINT_MODULE_HEADER();
 
   // Allocate some resource
   double* x = new double(5.0);
@@ -53,7 +50,7 @@ int main() {
   // Create the shared pointer
   auto s_ptr1 = SingleThreadSharedPtr<resource_type>(x);
   s_ptr1.printRefCountAndResource();
-  std::printf("--- s_ptr1 is [%p, %f]\n", s_ptr1.get(), *s_ptr1);
+  PRINT_SHARED_PTR_IS(s_ptr1);
 
   std::cout << "\n||| EXPECT: Ref count 1, value is 5.0 ||| \n\n";
 
@@ -70,7 +67,7 @@ int main() {
                "for previous allocations ||| \n\n";
 
   // Pass it into a function (by value)
-  testFunctionFoo(s_ptr1);  // pass to testFunctionFoo here
+  testFuncPassByValue(s_ptr1);  // pass to testFunctionFoo here
   s_ptr1.printRefCountAndResource();
 
   std::cout << "\n||| EXPECT: Copy construct executed, RefCount=3 inside "
@@ -89,8 +86,10 @@ int main() {
   std::cout
       << "\n||| EXPECT: Copy constructor executed, nothing printed ||| \n\n";
 
-  std::printf("--- s_ptr1 is [%p, %f]\n", s_ptr1.get(), *s_ptr1);
-  std::printf("--- s_ptr2 is [%p, %f]\n", s_ptr2.get(), *s_ptr2);
+  PRINT_SHARED_PTR_IS(s_ptr1);
+  PRINT_SHARED_PTR_IS(s_ptr2);
+
+  assert(s_ptr1.get() == s_ptr2.get());
   s_ptr1.printRefCountAndResource();
 
   std::cout << "\n||| EXPECT: s_ptr1 refCount is 2, resource held by s_ptr2 as "
