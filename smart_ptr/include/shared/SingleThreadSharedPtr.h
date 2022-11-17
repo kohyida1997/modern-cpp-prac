@@ -52,7 +52,7 @@ class SingleThreadSharedPtr {
     return *this;
   }
 
-  // Move construct
+  // Move construct (NOT THREAD SAFE)
   SingleThreadSharedPtr(SingleThreadSharedPtr&& other)
       : _resource(other._resource), _refCount(other._refCount) {
 #if DEBUG_PRINT
@@ -62,7 +62,7 @@ class SingleThreadSharedPtr {
     other._refCount = nullptr;
   }
 
-  // // Move assign
+  // // Move assign (NOT THREAD SAFE)
   SingleThreadSharedPtr& operator=(SingleThreadSharedPtr&& other) {
 #if DEBUG_PRINT
     std::cout << "Move asssign\n";
@@ -81,7 +81,7 @@ class SingleThreadSharedPtr {
     return *this;
   }
 
-  // Deleter
+  // Destructor (NOT THREAD SAFE)
   ~SingleThreadSharedPtr() {
 #if DEBUG_PRINT
     std::cout << this << " called Destructor\n";
