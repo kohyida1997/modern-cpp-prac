@@ -63,6 +63,7 @@ void constInfo() {
   // q = c;   // === This is NOT OK
   q[0] = 'A';  // === This is OK
 
+  // This is a const (const char) pointer
   const char* const p = "GoodByeWorld";
   // p = c;        // === This is NOT OK
   // p[0] = 'B';   // === This is NOT OK
