@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+OPTION(DEBUG "Overload New and Delete Operators" OFF)
+IF(DEBUG)
+    # Overloading New and Delte will cause Valgrind to break
+    add_definitions(-DOVERLOAD_NEW_DELETE=1)
+ENDIF(DEBUG)
+
 project(small_buffer)
 
 ############################################################
@@ -20,6 +26,8 @@ target_include_directories(small_buffer
 ############################################################
 # Create an executable
 ############################################################
+
+# Add compile definitions
 
 # Add an executable with the above sources
 add_executable(main_bin

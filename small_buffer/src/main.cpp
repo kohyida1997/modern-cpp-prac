@@ -3,12 +3,13 @@
 #include <cassert>
 #include <iostream>
 #include <utility>  // std::pair
+#include <vector>
 
 #include "Utils.h"             // Func header macros
 #include "shared/SBOVector.h"  // SBOVector
 
-/* Debug options */
-#define OVERLOAD_NEW_DELETE 0  // Will cause Valgrind to break if set to 1
+/* Debug options note: */
+// Overloading New and Delte will cause Valgrind to break
 
 /* Overload global operator new and delete */
 #if OVERLOAD_NEW_DELETE
@@ -41,6 +42,7 @@ using SBOVectorWithInitSize = MySBOContainers::SBOVector<T, F>;
 void testStackAllocationOnly();
 void testStackAllocationOverrideDefaultStaticCapacity();
 void testExceedStackCapacity();
+void testDefaultCapacityZero();
 
 // Main Driver code
 int main() {
@@ -49,6 +51,7 @@ int main() {
   testStackAllocationOnly();
   testStackAllocationOverrideDefaultStaticCapacity();
   testExceedStackCapacity();
+  testDefaultCapacityZero();
   return 0;
 }
 /* Function definitions*/
@@ -97,6 +100,9 @@ void testStackAllocationOverrideDefaultStaticCapacity() {
 
 void testExceedStackCapacity() {
   PRINT_FUNC_HEADER(__func__);
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
   using st = std::size_t;
 
   // Default Stack Size is 4 elements
@@ -127,5 +133,48 @@ void testExceedStackCapacity() {
   usedSoFar += sizeof(int) * count << 2;
   assert(HEAP_BYTES_ALLOCATED == usedSoFar);
 #endif
+  PRINT_TEST_PASS(__func__);
+}
+
+void testDefaultCapacityZero() {
+  PRINT_FUNC_HEADER(__func__);
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
+  using data_t = uint64_t;
+
+  // Default Stack Size is 0 elements
+  auto myVec = SBOVectorWithInitSize<data_t, 0>();
+  assert(myVec.size() == 0);
+  assert(myVec.capacity() == 0);
+
+  // First allocation -> capacity becomes 1
+  myVec.push_back(1);
+  printVector(myVec);
+  assert(myVec.size() == 1);
+  assert(myVec.capacity() == 1);
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(data_t) * 1);
+#endif
+
+  // Second allocation -> capacity becomes 2
+  myVec.push_back(2);
+  printVector(myVec);
+  assert(myVec.size() == 2);
+  assert(myVec.capacity() == 2);
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(data_t) * (1 + 2));
+#endif
+
+  // Third allocation -> capacity becomes 4
+  myVec.push_back(3);
+  myVec.push_back(4);
+  printVector(myVec);
+  assert(myVec.size() == 4);
+  assert(myVec.capacity() == 4);
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(data_t) * (1 + 2 + 4));
+#endif
+
   PRINT_TEST_PASS(__func__);
 }
