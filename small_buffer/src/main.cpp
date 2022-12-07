@@ -49,14 +49,18 @@ int main() {
   // Say Hello Y'all
   PRINT_MODULE_HEADER();
   testStackAllocationOnly();
+  testDefaultCapacityZero();
   testStackAllocationOverrideDefaultStaticCapacity();
   testExceedStackCapacity();
-  testDefaultCapacityZero();
+
   return 0;
 }
 /* Function definitions*/
 void testStackAllocationOnly() {
   PRINT_FUNC_HEADER(__func__);
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
   using data_t = double;
   using st = std::size_t;
 
@@ -80,6 +84,9 @@ void testStackAllocationOnly() {
 }
 
 void testStackAllocationOverrideDefaultStaticCapacity() {
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
   PRINT_FUNC_HEADER(__func__);
   using data_t = std::pair<short, double>;
   using st = std::size_t;

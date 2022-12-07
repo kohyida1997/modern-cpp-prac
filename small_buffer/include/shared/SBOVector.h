@@ -43,10 +43,10 @@ class SBOVector {
 
       // Copy over
       if (_capacity > StaticCapacity) {  // Already using heap data
-        std::copy(_dataPtr, _dataPtr + _size, temp);
+        std::move(_dataPtr, _dataPtr + _size, temp);
         delete[] (_dataPtr);
       } else {
-        std::copy(_data.begin(), _data.end(), temp);
+        std::move(_data.begin(), _data.end(), temp);
       }
       _capacity = newCapacity;
       _dataPtr = temp;
