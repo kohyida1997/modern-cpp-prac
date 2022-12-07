@@ -4,23 +4,18 @@
 #include <iostream>
 #include <utility>  // std::pair
 
-#include "shared/SBOVector.h"
+#include "Utils.h"             // Func header macros
+#include "shared/SBOVector.h"  // SBOVector
 
 /* Debug options */
-#define OVERLOAD_NEW_DELETE 1
-
-/* Helper Macros */
-#define PRINT_FUNC_HEADER(a) std::cout << "\n+++ Inside: " << a << std::endl;
-#define PRINT_FUNC_FINISH(b) std::cout << "+++ Finish: " << b << std::endl;
-#define PRINT_MODULE_HEADER()                                                 \
-  std::cout << "=== Welcome to the Small Buffer Optimization submodule! Get " \
-               "ready to "                                                    \
-               "have a small buffer! ===\n";
+#define OVERLOAD_NEW_DELETE 0  // Will cause Valgrind to break if set to 1
 
 /* Overload global operator new and delete */
 #if OVERLOAD_NEW_DELETE
+static unsigned int HEAP_BYTES_ALLOCATED = 0;
 void* operator new(size_t s) {
   auto ptr = malloc(s);
+  HEAP_BYTES_ALLOCATED += s;
   std::cout << "New: Heap Allocated " << s << " bytes at " << ptr << std::endl;
   return ptr;
 }
@@ -31,7 +26,9 @@ void operator delete(void* ptr) {
 }
 #endif
 
-/* Types */
+/* Types and Namespaces */
+using namespace Utils;
+
 using size_t = std::size_t;
 
 template <typename T>
@@ -43,6 +40,7 @@ using SBOVectorWithInitSize = MySBOContainers::SBOVector<T, F>;
 /* Function prototypes */
 void testStackAllocationOnly();
 void testStackAllocationOverrideDefaultStaticCapacity();
+void testExceedStackCapacity();
 
 // Main Driver code
 int main() {
@@ -50,28 +48,9 @@ int main() {
   PRINT_MODULE_HEADER();
   testStackAllocationOnly();
   testStackAllocationOverrideDefaultStaticCapacity();
+  testExceedStackCapacity();
   return 0;
 }
-
-/* Helper functions */
-template <typename VectorType, typename Printer>
-void printVectorRange(const VectorType& vec, size_t start, size_t endExclusive,
-                      Printer print) {
-  std::cout << ">>> vec(" << start << "," << endExclusive << "): [";
-  for (; start < endExclusive; start++) {
-    print(vec[start]);
-    std::cout << ",";
-    if (!(start + 1 >= endExclusive)) std::cout << " ";
-  }
-  std::cout << "]\n";
-}
-constexpr auto defaultPrinter = [](const auto& e) { std::cout << e; };
-template <typename VectorType>
-inline void printVectorRange(const VectorType& vec, size_t start,
-                             size_t endExclusive) {
-  printVectorRange(vec, start, endExclusive, defaultPrinter);
-}
-
 /* Function definitions*/
 void testStackAllocationOnly() {
   PRINT_FUNC_HEADER(__func__);
@@ -83,20 +62,18 @@ void testStackAllocationOnly() {
 
   // Push_back 6 elements
   st count = 6;
-  for (st i = 0; i < count; i++) myVec.push_back(1.0 * i);
+  for (st i = 0; i < count; i++) myVec.push_back(1.01 * i);
   printVectorRange(myVec, 0, count);
 
   // Push_back 10 more elements
   st more = 10;
-  for (st i = 0; i < more; i++) myVec.push_back(1.0 * i + count + 0.1);
+  for (st i = 0; i < more; i++) myVec.push_back(1.01 * (i + count));
   printVectorRange(myVec, 0, more + count);
 
-  try {
-    myVec.push_back(0.2);
-  } catch (std::runtime_error e) {
-    std::cout << e.what() << std::endl;
-  }
-  assert(myVec.size() == more + count);
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == 0);
+#endif
+  PRINT_TEST_PASS(__func__);
 }
 
 void testStackAllocationOverrideDefaultStaticCapacity() {
@@ -112,10 +89,43 @@ void testStackAllocationOverrideDefaultStaticCapacity() {
     std::cout << "[" << p.first << ", " << p.second << "]";
   });
 
-  try {
-    v.push_back(std::make_pair(0, 0.0));
-  } catch (std::runtime_error e) {
-    std::cout << e.what() << std::endl;
-  }
-  assert(v.size() == count);
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == 0);
+#endif
+  PRINT_TEST_PASS(__func__);
+}
+
+void testExceedStackCapacity() {
+  PRINT_FUNC_HEADER(__func__);
+  using st = std::size_t;
+
+  // Default Stack Size is 4 elements
+  auto myVec = SBOVectorWithInitSize<int, 4>();
+
+  // Push_back 4 elements
+  st count = 4;
+  for (st i = 0; i < count; i++) myVec.push_back(i + 1);
+  printVector(myVec);  // 4 elements
+
+  // Expect re-allocation, fallback to heap
+  myVec.push_back(count + 1);  // 5 elements
+
+#if OVERLOAD_NEW_DELETE
+  int usedSoFar = sizeof(int) * count << 1;
+  assert(HEAP_BYTES_ALLOCATED == usedSoFar);
+#endif
+
+  for (st i = 1; i < count; i++) myVec.push_back(count + i + 1);
+  printVector(myVec);  // 8 elements
+
+  // Expect re-allocation AGAIN
+  myVec.push_back(count * 2 + 1);
+  for (st i = count * 2 + 2; i < count * 2 * 2; i++) myVec.push_back(i);
+  printVector(myVec);
+
+#if OVERLOAD_NEW_DELETE
+  usedSoFar += sizeof(int) * count << 2;
+  assert(HEAP_BYTES_ALLOCATED == usedSoFar);
+#endif
+  PRINT_TEST_PASS(__func__);
 }

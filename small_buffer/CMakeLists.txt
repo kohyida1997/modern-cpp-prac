@@ -24,6 +24,7 @@ target_include_directories(small_buffer
 # Add an executable with the above sources
 add_executable(main_bin
     src/main.cpp
+    src/Utils.h
 )
 
 target_link_libraries(main_bin

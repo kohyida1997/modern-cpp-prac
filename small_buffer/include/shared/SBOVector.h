@@ -17,7 +17,7 @@ class SBOVector {
   size_t _size;
   size_t _capacity = StaticCapacity;
   std::array<T, StaticCapacity> _data;
-  T* _dataPtr;
+  T* _dataPtr = nullptr;
 
  public:
   // Constructor
@@ -33,10 +33,25 @@ class SBOVector {
 
   void push_back(const T& val) {
     if (_size + 1 > _capacity) {
-      std::cout << "!!! Push_back failed, exceeded capacity\n";
-      throw std::runtime_error("Runtime error detected: SBOVector is full");
+      if (_size == StaticCapacity)
+        std::cout
+            << "!!! Stack Capacity Exceeded, falling back to heap allocation\n";
+
+      std::size_t newCapacity = _capacity == 0 ? 1 : _capacity * 2;
+      // Allocate a new chunk
+      T* temp = reinterpret_cast<T*>(new T[newCapacity]);
+
+      // Copy over
+      if (_capacity > StaticCapacity) {  // Already using heap data
+        std::copy(_dataPtr, _dataPtr + _size, temp);
+        delete[] (_dataPtr);
+      } else {
+        std::copy(_data.begin(), _data.end(), temp);
+      }
+      _capacity = newCapacity;
+      _dataPtr = temp;
     }
-    _data[_size++] = val;  // Copy construct T
+    _dataPtr[_size++] = val;  // Copy construct T
   }
 
   T operator[](size_t i) const {
@@ -54,7 +69,7 @@ class SBOVector {
   // Destructor
   ~SBOVector() {
     if (_capacity > StaticCapacity) {
-      free(_dataPtr);
+      delete[] (_dataPtr);
     }
   }
 
