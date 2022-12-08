@@ -236,7 +236,8 @@ void testCopyAssign() {
   }
 
 #if OVERLOAD_NEW_DELETE
-  assert(HEAP_BYTES_ALLOCATED == sizeof(int) * staticSize * 2 * 2 + sizeof(int) * staticSize * 2 * 2);
+  assert(HEAP_BYTES_ALLOCATED ==
+         sizeof(int) * staticSize * 2 * 2 + sizeof(int) * staticSize * 2 * 2);
 #endif
 
   PRINT_TEST_PASS(__func__);

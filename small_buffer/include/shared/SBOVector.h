@@ -51,9 +51,10 @@ class SBOVector {
   //
   SBOVector& operator=(const SBOVector& other) {
     // Case: Other is within stack space, we already allocated on the heap
-    // We need to free and store on stack. We don't preserve capacity in this case
+    // We need to free and store on stack. We don't preserve capacity in this
+    // case
     if (other.size() <= StaticCapacity && _capacity > StaticCapacity) {
-      delete[](_dataPtr);
+      delete[] (_dataPtr);
       _capacity = StaticCapacity;
     }
 
@@ -62,7 +63,7 @@ class SBOVector {
     else if (other.size() > StaticCapacity && _capacity < other.size()) {
       // If we allocated, we need to free
       if (_capacity > StaticCapacity) {
-        delete[](_dataPtr);
+        delete[] (_dataPtr);
       }
 
       // Just take the capacity of the other vector
