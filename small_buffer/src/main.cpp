@@ -9,7 +9,7 @@
 #include "shared/SBOVector.h"  // SBOVector
 
 /* Debug options note: */
-// Overloading New and Delte will cause Valgrind to break
+// Overloading New and Delete will cause Valgrind to break
 
 /* Overload global operator new and delete */
 #if OVERLOAD_NEW_DELETE
