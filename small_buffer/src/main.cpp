@@ -43,6 +43,8 @@ void testStackAllocationOnly();
 void testStackAllocationOverrideDefaultStaticCapacity();
 void testExceedStackCapacity();
 void testDefaultCapacityZero();
+void testCopyConstructor();
+void testCopyAssign();
 
 // Main Driver code
 int main() {
@@ -52,9 +54,12 @@ int main() {
   testDefaultCapacityZero();
   testStackAllocationOverrideDefaultStaticCapacity();
   testExceedStackCapacity();
+  testCopyConstructor();
+  testCopyAssign();
 
   return 0;
 }
+
 /* Function definitions*/
 void testStackAllocationOnly() {
   PRINT_FUNC_HEADER(__func__);
@@ -182,6 +187,97 @@ void testDefaultCapacityZero() {
 #if OVERLOAD_NEW_DELETE
   assert(HEAP_BYTES_ALLOCATED == sizeof(data_t) * (1 + 2 + 4));
 #endif
+
+  PRINT_TEST_PASS(__func__);
+}
+
+void testCopyAssign() {
+  PRINT_FUNC_HEADER(__func__);
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
+  // Part 1 -- Copy assign without heap allocation
+  constexpr size_t staticSize = 4;
+  auto myVec = SBOVectorWithInitSize<int, staticSize>();
+  for (int i = 0; i < staticSize; i++) myVec.push_back(i);
+
+  auto myVecCopy = SBOVectorWithInitSize<int, staticSize>();
+  myVecCopy = myVec;
+
+  for (int i = 0; i < staticSize; i++) {
+    assert(myVec[i] == myVecCopy[i]);
+  }
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == 0);
+#endif
+
+  // Part 2 -- Copy assign with heap allocation, not enough existing capacity
+  myVec.push_back(staticSize);
+  myVecCopy = myVec;
+  assert(myVecCopy.size() == myVec.size());
+  assert(myVecCopy.capacity() == myVec.capacity());
+  for (int i = 0; i < myVec.size(); i++) {
+    assert(myVec[i] == myVecCopy[i]);
+  }
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(int) * staticSize * 2 * 2);
+#endif
+
+  // Part 3 -- Copy assign with heap allocation, existing has enough capacity
+  for (int i = 5; i < staticSize * 2 + 1; i++) myVecCopy.push_back(i);
+  myVec.push_back(9);
+  myVecCopy = myVec;
+  assert(myVec.size() == myVecCopy.size());
+  assert(myVecCopy.capacity() == myVec.capacity() * 2);
+  for (int i = 0; i < myVec.size(); i++) {
+    assert(myVec[i] == myVecCopy[i]);
+  }
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(int) * staticSize * 2 * 2 + sizeof(int) * staticSize * 2 * 2);
+#endif
+
+  PRINT_TEST_PASS(__func__);
+}
+
+void testCopyConstructor() {
+  PRINT_FUNC_HEADER(__func__);
+#if OVERLOAD_NEW_DELETE
+  HEAP_BYTES_ALLOCATED = 0;
+#endif
+  // Part 1 -- Copy constructor without heap allocation
+  constexpr size_t staticSize = 4;
+  auto myVec = SBOVectorWithInitSize<int, staticSize>();
+  for (int i = 0; i < staticSize; i++) myVec.push_back(i);
+
+  auto myVecCopy = SBOVectorWithInitSize<int, staticSize>(myVec);
+
+  for (int i = 0; i < staticSize; i++) {
+    assert(myVec[i] == myVecCopy[i]);
+  }
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == 0);
+#endif
+
+  // Part 2 -- Copy constructor with heap allocation
+  for (int i = staticSize; i < staticSize * 2; i++) myVec.push_back(i);
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == sizeof(int) * staticSize * 2);
+#endif
+
+  auto myVecCopy2 = SBOVectorWithInitSize<int, staticSize>(myVec);
+
+#if OVERLOAD_NEW_DELETE
+  assert(HEAP_BYTES_ALLOCATED == 2 * (sizeof(int) * staticSize * 2));
+#endif
+
+  for (int i = 0; i < myVec.size(); i++) {
+    assert(myVec[i] == myVecCopy2[i]);
+  }
 
   PRINT_TEST_PASS(__func__);
 }
