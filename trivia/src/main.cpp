@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include "Atomics.h"
+
 #define PRINT_FUNC_HEADER(a) std::cout << "\n+++ Inside: " << a << std::endl;
 
 void sayHello() { std::cout << "=== Hello from Trivia Y'all ===\n"; }
