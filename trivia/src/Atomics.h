@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <vector>
 
 /*
 Example 1 -> Relaxed Memory ordering, reordering of load/store statements
@@ -125,4 +126,150 @@ From the article:
 
 */
 
+/*
+Example 4 -> Release Acquire model. Synchronize only between release/acquire on
+the same atomic variable. Taken from:
+https://en.cppreference.com/w/cpp/atomic/memory_order
+*/
+
 }  // namespace AtomicExample3
+
+namespace AtomicExample4 {
+std::atomic<std::string*> ptr;
+int data;
+
+void producer() {
+  std::string* p = new std::string("Hello");
+  data = 42;
+  ptr.store(p, std::memory_order_release);
+}
+
+void consumer() {
+  std::string* p2;
+  while (!(p2 = ptr.load(std::memory_order_acquire)))
+    ;
+  assert(*p2 == "Hello");  // never fires
+  assert(data == 42);      // never fires
+}
+}  // namespace AtomicExample4
+
+/*
+Case Study 1: Rigtorp's Lock Free SPSC (Not SPMC) Circular Buffer
+Taken from: https://rigtorp.se/ringbuffer/
+Also regarding power of two:
+https://stackoverflow.com/questions/10527581/why-must-a-ring-buffer-size-be-a-power-of-2
+*/
+
+namespace RigTorpLockfreeCircularBuffer {
+struct ringbuffer {
+  std::vector<int> data_;
+  // L1 Cache Line Aligned
+  alignas(64) std::atomic<size_t> readIdx_{0};
+  alignas(64) std::atomic<size_t> writeIdx_{0};
+
+  ringbuffer(size_t capacity) : data_(capacity, 0) {}
+
+  // nextWriteIdx == readIdx is used to signify buffer is full
+  // eg. [X,_,X,X]
+  //      ^ ^
+  //      W R
+
+  bool push(int val) {
+    auto const writeIdx = writeIdx_.load(std::memory_order_relaxed);
+    auto nextWriteIdx = writeIdx + 1;
+    if (nextWriteIdx == data_.size()) {
+      nextWriteIdx = 0;
+    }
+    if (nextWriteIdx == readIdx_.load(std::memory_order_acquire)) {
+      return false;
+    }
+    data_[writeIdx] = val;
+    writeIdx_.store(nextWriteIdx, std::memory_order_release);
+    return true;
+  }
+
+  bool pop(int& val) {
+    // Relaxed ordering for readIdx because only 1 consumer thread
+    // and reader thread doesn't need to synchronize with itself
+    auto const readIdx = readIdx_.load(std::memory_order_relaxed);
+
+    // Use acquire on writeIdx to synchronize with producer thread,
+    // ensure all operations BEFORE the release is seen.
+    if (readIdx == writeIdx_.load(std::memory_order_acquire)) {
+      return false;
+    }
+
+    // modify
+    val = data_[readIdx];
+
+    auto nextReadIdx = readIdx + 1;
+    if (nextReadIdx == data_.size()) {
+      nextReadIdx = 0;
+    }
+
+    // Use release to ensure producer thread sees my changes
+    readIdx_.store(nextReadIdx, std::memory_order_release);
+    return true;
+  }
+};
+}  // namespace RigTorpLockfreeCircularBuffer
+
+/* Explanation
+
+- Note that (p2 = ptr.load(...)) is atomic.
+- If the consumer goes past the while check, then it must have
+  seen the store on the atomic ptr.
+- A happens-before is established.
+- All writes BEFORE the ptr.store will be visible, and the compiler
+  will not re-order beyond the atomic_store_release.
+
+*/
+
+/*
+
+Memory Order Modes:
+Details: https://en.cppreference.com/w/cpp/atomic/memory_order
+
+1. Sequential Consistency
+
+- Instructions, both atomic or not can be interleaved.
+- There exists a globally sequentially consistent execution that preserves
+  program order.
+- Re-ordering can happen between atomic operations, but not across the atomic
+  operations
+- All threads will observe the SAME sequence of modifications on the memory
+  location in the same order.
+- There is a global ordering across ALL atomic variables that is visible to
+  everyone, but the actual order might not be known till runtime
+
+
+2. Relaxed
+
+- Only guarantee atomicity and modification order consistency
+- No happens-before between unrelated atomic or non-atomic operations
+- If thread1 sees a value of a variable X on thread2, it cannot later see older
+  values of X from thread2. (Same variable)
+- Can re-order non-dependent variables (dependent is if they access same memory
+  location)
+- Preserves modification order (RR, RW, WR, WW) on the SAME atomic variable only
+
+3. Release-Acquire ordering
+
+- Only possibly enforce happens-before between loads/stores of the SAME atomic
+  variable across threads.
+- If thread A store is tagged "release", and if thread B load is tagged
+  "acquire", AND if thread B actually loads the value that thread A stored, then
+  a happens-before relationship is guaranteed.
+- Notice the importance of the last conditions. All memory writes, both
+  non-atomic and relaxed atomic that <happened-before> the atomic store on
+  thread A will be visible to thread B ONLY if B returns the value that thread A
+  stored, or a value from later in the release sequence of thread A.
+- This synchronization is only established between threads releasing/acquiring
+  the same atomic variable. Other threads can see different order of memory
+  access than what the synchronized threads see.
+- A good example are MUTEXES or Atomic Spinlocks. After one thread RELEASES the
+  lock after the critical section, another thread that acquires the lock is
+  guaranteed to see the changes before the release of the lock in the critical
+  section.
+
+*/
