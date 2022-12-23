@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cassert>
 #include <vector>
+#include <string>
 
 /*
 Example 1 -> Relaxed Memory ordering, reordering of load/store statements
