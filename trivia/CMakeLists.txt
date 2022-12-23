@@ -7,7 +7,7 @@ project(trivia)
 ############################################################
 
 # Glob
-file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "src/*.h")
 
 # Remove main.cpp
 list(REMOVE_ITEM SOURCES "src/main.cpp")

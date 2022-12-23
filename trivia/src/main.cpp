@@ -7,6 +7,7 @@
 #include <string>
 
 #include "Atomics.h"
+#include "PushVsEmplace.h"
 
 #define PRINT_FUNC_HEADER(a) std::cout << "\n+++ Inside: " << a << std::endl;
 
@@ -14,12 +15,14 @@ void sayHello() { std::cout << "=== Hello from Trivia Y'all ===\n"; }
 
 void checkEndian();
 void itoaTest();
+void vectorPushBackVsEmplace();
 
 int main() {
   // Say hi
   sayHello();
   checkEndian();
   itoaTest();
+  vectorPushBackVsEmplace(); 
   return 0;
 }
 
@@ -42,6 +45,12 @@ void itoaTest() {
   assert(std::to_string(test) == std::string(MyItoa::itoaBase10(test, buf)));
 
   std::cout << "Done testing my custom itoa" << std::endl;
+}
+
+void vectorPushBackVsEmplace() {
+  PRINT_FUNC_HEADER(__func__);
+  PushVsEmplace::runExamples();
+  std::cout << "Done showing push_back() vs, emplace_back() examples!" << endl;
 }
 
 void checkEndian() {
