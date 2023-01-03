@@ -14,6 +14,24 @@ class SingleThreadSharedPtr {
   T* _resource;
   unsigned int* _refCount;
 
+  // Increase ref count if we are owning a resource
+  void tryIncreaseRefCount() noexcept {
+    if (_refCount) {
+      (*_refCount)++;
+    }
+  }
+
+  // Decrease ref count if we are owning a resource
+  void tryDecreaseRefCount() noexcept {
+    if (_refCount) {
+      (*_refCount)--;
+      if (*_refCount == 0) {
+        delete _refCount;
+        delete _resource;
+      }
+    }
+  }
+
  public:
   // Basic constructor
   SingleThreadSharedPtr(T* resource) noexcept : _resource(resource) {
@@ -29,7 +47,7 @@ class SingleThreadSharedPtr {
 #if DEBUG_PRINT
     std::cout << "Copy Constructor\n";
 #endif
-    (*_refCount)++;
+    tryIncreaseRefCount();
   }
 
   // Copy assign (NOT THREAD SAFE)
@@ -38,17 +56,18 @@ class SingleThreadSharedPtr {
 #if DEBUG_PRINT
     std::cout << "Copy Assign\n";
 #endif
-    (*_refCount)--;
+    // Prevent self-assign
+    if (this == &other) return *this;
 
-    // Delete when refCount hits zero for current resource
-    if (*_refCount <= 0) {
-      delete _resource;
-      delete _refCount;
-    }
+    // Clean up my own resources, we don't own it anymore
+    tryDecreaseRefCount();
 
+    // Set our resource to the other's
     _resource = other._resource;
     _refCount = other._refCount;
-    (*_refCount)++;
+
+    // If needed, we increase the ownership of ref count
+    tryIncreaseRefCount();
     return *this;
   }
 
@@ -58,6 +77,8 @@ class SingleThreadSharedPtr {
 #if DEBUG_PRINT
     std::cout << "Move construct\n";
 #endif
+
+    // Invalidate the other's resources
     other._resource = nullptr;
     other._refCount = nullptr;
   }
@@ -65,16 +86,19 @@ class SingleThreadSharedPtr {
   // // Move assign (NOT THREAD SAFE)
   SingleThreadSharedPtr& operator=(SingleThreadSharedPtr&& other) {
 #if DEBUG_PRINT
-    std::cout << "Move asssign\n";
+    std::cout << "Move assign\n";
 #endif
-    *_refCount -= 1;
-    if (*_refCount <= 0) {
-      delete _resource;
-      delete _refCount;
-    }
+    // Prevent self-assign
+    if (this == &other) return *this;
+
+    // Clean up my own resources, we don't own it anymore
+    tryDecreaseRefCount();
+
+    // Steal the other's resources
     _resource = other._resource;
     _refCount = other._refCount;
 
+    // Invalidate other's resources
     other._refCount = nullptr;
     other._resource = nullptr;
 
@@ -86,22 +110,22 @@ class SingleThreadSharedPtr {
 #if DEBUG_PRINT
     std::cout << this << " called Destructor\n";
 #endif
-    if (_refCount == nullptr) {
-      _resource = nullptr;
-      return;
-    }
-
-    (*_refCount)--;
-    if (*_refCount <= 0) {
-      if (_resource != nullptr) delete _resource;
-      if (_refCount != nullptr) delete _refCount;
-    }
-    _resource = nullptr;
+    // Clean up my own resources
+    tryDecreaseRefCount();
   }
 
-  T* get() const { return _resource; }
+  T* get() const noexcept { return _resource; }
 
+  /*
+    refCount() returns the number of shared_ptrs that have a reference
+    to the resource. If the resource is null or invalid (such as after a move
+    operation), it will throw
+  */
   auto refCount() { return *_refCount; }
+
+  bool hasResource() noexcept {
+    return _refCount != nullptr && _resource != nullptr;
+  }
 
   inline void printRefCountAndResource() noexcept {
     std::printf(
