@@ -7,7 +7,7 @@
 #include "tests.cpp"
 
 // Debug options
-#define OVERLOAD_NEW_DELETE 1
+#define OVERLOAD_NEW_DELETE 0
 
 #define PRINT_MODULE_HEADER()                                              \
   std::cout << "=== Welcome to the Smart Pointer submodule. Get ready to " \
